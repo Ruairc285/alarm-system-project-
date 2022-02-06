@@ -124,7 +124,7 @@ keypad.getKey();
       //Serial.print("sensorsdData = "); //Used for troubleshooting
       //Serial.println(sensorsData); //Used for troubleshooting
    
-  //    if(sensorsData > 600) {x = 3; timpmemorat = ceas;}
+  //    if(sensorsData > 600) {x = 3; time2 = time1;}
      if(sensorsData == HIGH)
        {
        x = 3;
