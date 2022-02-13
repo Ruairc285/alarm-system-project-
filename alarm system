@@ -1,5 +1,10 @@
 #include <Keypad.h>                // library for keyboard
 #include <Password.h>              // library for password
+#include <LiquidCrystal.h>         // library for LCD display
+// LiquidCrystal lcd(7, 8, 9, 10, 11, 12);
+LiquidCrystal lcd(A0, A1, A2, A3, A4, A5);
+bool doInitilizeLCD = true;
+
 
 Password password = Password( "1234" );  // password
 
@@ -69,6 +74,8 @@ void setup()
   Serial.println("System startup"); //Used for troubleshooting
   Serial.println("Alarm button status:"); //used for troubleshooting
   Serial.println(digitalRead(contact)); //used for troubleshooting
+  
+  lcd.begin(16, 2); // set up and register the LCD
   }
 
 void loop()
@@ -77,6 +84,66 @@ void loop()
      
   time1 = millis();    // read the internal clock
   val = digitalRead(contact);
+  
+   initilizeLCD();
+   
+   const char* getStateString(enum ArmedStates armedState) {
+  switch (armedState)
+  {
+    case ARMED: return "ARMED";
+    case DISARMED: return "DISARMED";
+  }
+  
+  void initilizeLCD() {
+  if (doInitilizeLCD) {
+
+    doInitilizeLCD = false;
+    lcd.clear();
+    String a = getStateString(armedState);
+
+    if (debug) {
+      Serial.println("armedState: " + a);
+    }
+
+    lcd.setCursor(0, 0);
+    lcd.print(a);
+    lcd.setCursor(0, 1);
+    lcd.print("PRESS * to ARM.");
+  }
+}
+
+void handleLCD(bool shouldClearLCD) {
+  if (shouldClearLCD) {
+    lcd.clear();
+  }
+
+  String a = getStateString(armedState);
+
+  if (debug) {
+    Serial.println("armedState: " + a);
+  }
+
+  lcd.setCursor(0, 0);
+  lcd.print(a);
+  lcd.setCursor(0, 1);
+
+
+  lcd.print("DISARM KEY:");
+  uint8_t cursorStart = 11;
+  lcd.setCursor(cursorStart, 1);
+  lcd.cursor();
+
+  // overwrites the LCD screen positions with blank space or keypad input
+  for (int i = 0; i < 4; i++) {
+    if (keyPadInput[i] == 'z') {
+      lcd.setCursor(cursorStart + i, 1);
+      lcd.print(" ");
+    } else {
+      lcd.setCursor(cursorStart + i, 1);
+      lcd.print(keyPadInput[i]);
+    }
+  }
+}
   
 keypad.getKey();
  
