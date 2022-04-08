@@ -1,240 +1,512 @@
+#
+include < LiquidCrystal.h > //include lcd library file 
 
-#include <LiquidCrystal.h>
-// initialize the library with the numbers of the interface pins
-// LiquidCrystal lcd(7, 8, 9, 10, 11, 12);
-LiquidCrystal lcd(A0, A1, A2, A3, A4, A5);
-bool doInitilizeLCD = true;
+    // initialize the library with the numbers of the interface pins 
+
+    LiquidCrystal lcd(A0, A1, A2, A3, A4, A5); // pins from arduino to lcd 
+
+bool doInitilizeLCD = true; //Confirming startup of lcd 
 
 
-#include <Keypad.h>
 
-const byte ROWS = 4; //four rows
-const byte COLS = 4; //four columns
-//define the cymbols on the buttons of the keypads
+// --KEY PAD START ---------------------------------------------------- 
+
+
+
+#
+include < Keypad.h > //include keypad library file 
+
+
+
+    const byte ROWS = 4; //four rows 
+
+const byte COLS = 4; //four columns 
+
+//define the cymbols on the buttons of the keypads 
+
 char hexaKeys[ROWS][COLS] = {
-  {'1', '2', '3', 'A'},
-  {'4', '5', '6', 'B'},
-  {'7', '8', '9', 'C'},
-  {'*', '0', '#', 'D'}
+
+    {
+        '1',
+        '2',
+        '3',
+        'A'
+    },
+
+    {
+        '4',
+        '5',
+        '6',
+        'B'
+    },
+
+    {
+        '7',
+        '8',
+        '9',
+        'C'
+    },
+
+    {
+        '*',
+        '0',
+        '#',
+        'D'
+    }
+
 };
-byte rowPins[ROWS] = {9, 8, 7, 6}; //connect to the row pinouts of the keypad
-byte colPins[COLS] = {5, 4, 3, 2}; //connect to the column pinouts of the keypad
 
-//initialize an instance of class NewKeypad
-Keypad customKeypad = Keypad( makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS);
+byte rowPins[ROWS] = {
+    9,
+    8,
+    7,
+    6
+}; //connect to the row pinouts of the keypad (digital PWN) 
+
+byte colPins[COLS] = {
+    5,
+    4,
+    3,
+    2
+}; //connect to the column pinouts of the keypad 
+
+
+
+//initialize an instance of class NewKeypad 
+
+Keypad customKeypad = Keypad(makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS);
+
 char customKey;
-char accessCode[] = "1111";
-char keyPadInput[] = "zzzz";
-unsigned char inputCounter = 0;
-unsigned char inputMaxCount = 4;
-// --KEY PAD END ------------------------------------------------------
 
-int ledPin = 11;  // LED on Pin 11, lights up when PIR is active
-int powerledPin = 13; // LED on Pin 13, indicates power on, always HIGH
+char accessCode[] = "1111"; //this code will disarm the alarm  
 
-int pirPin = 10; // Input for HC-S501
-int pirValue; // Place to store read PIR Value
+char keyPadInput[] = "aaaa";
 
-// --Active Buzzer START ----------------------------------------------
-int buzzer = 12;//the pin of the active buzzer
-boolean shouldBeAlerting = false;
-// --Active Buzzer END ------------------------------------------------------
+unsigned char inputCounter = 0; //this display will be nothing 
 
-enum ArmedStates {ARMED, DISARMED};
-ArmedStates armedState = DISARMED;
-short armedTimerInterval = 5;
+unsigned char inputMaxCount = 4; // max of four numbers 
+
+// --KEY PAD END ------------------------------------------------------ 
+
+
+
+int ledPin = 11; // Red LED on Pin 11 of arduino , lights up when PIR is active 
+
+int powerledPin = 13; // Green LED on Pin 13, indicates power on, always HIGH 
+
+
+
+int pirPin = 10; // Input for HC-S501 PIR motion detector 
+
+int pirValue; // Place to store read PIR Value 
+
+
+
+// --Active Buzzer START ---------------------------------------------- 
+
+int buzzer = 12; //the pin of the active buzzer 
+
+boolean shouldBeAlerting = false; // this is the default state when arduino recieves code, the buzzer will be OFF 
+
+// --Active Buzzer END ------------------------------------------------------ 
+
+
+
+enum ArmedStates {
+    ARMED,
+    DISARMED
+}; //alarm has two states  
+
+ArmedStates armedState = DISARMED; //the code will by default be DISARMED 
+
+short armedTimerInterval = 5; //the alarm waits 5 seconds before becomg ARMED 
+
 unsigned long armedTimer = millis();
 
-bool debug = false;
 
-void setup() {
-  Serial.begin(9600);
-  while (!Serial); // wait for Serial to connect
-  Serial.println("ready");
 
-  pinMode(buzzer, OUTPUT); // set up pin as output
+bool debug = false; // stops debug process 
 
-  pinMode(ledPin, OUTPUT); // set up pin as output
 
-  pinMode(powerledPin, OUTPUT); // set pin as output
 
-  pinMode(pirPin, INPUT); // set pin as input
+void setup() { //function that runs only once 
 
-  lcd.begin(16, 2); // set up and register the LCD
+    Serial.begin(9600); //serial is used for arduino to commuinicate throught the port with computer 
+
+    while (!Serial); // wait for Serial to connect 
+
+    Serial.println("ready");
+
+
+
+    pinMode(buzzer, OUTPUT); // set up pin as output 
+
+
+
+    pinMode(ledPin, OUTPUT); // set up pin as output 
+
+
+
+    pinMode(powerledPin, OUTPUT); // set pin as output 
+
+
+
+    pinMode(pirPin, INPUT); // set pin as input 
+
+
+
+    lcd.begin(16, 2); // set up and register the LCD 
+
+
 
 }
 
-void loop() {
-  digitalWrite(powerledPin, HIGH);
 
-  initilizeLCD();
 
-  handleKeyPadInput();
+void loop() { //function repeats itself 
 
-  handlePIR();
+    digitalWrite(powerledPin, HIGH); //led on 
 
-  alert();
+
+
+    initilizeLCD(); //statements 
+
+
+
+    handleKeyPadInput();
+
+
+
+    handlePIR();
+
+
+
+    alert();
+
+
 
 }
 
-const char* getStateString(enum ArmedStates armedState) {
-  switch (armedState)
-  {
-    case ARMED: return "ARMED";
-    case DISARMED: return "DISARMED";
-  }
+
+
+const char * getStateString(enum ArmedStates armedState) {
+
+    switch (armedState)
+
+    {
+
+        case ARMED:
+            return "ARMED";
+
+        case DISARMED:
+            return "DISARMED";
+
+    }
+
 }
 
-//
-void initilizeLCD() {
-  if (doInitilizeLCD) {
 
-    doInitilizeLCD = false;
-    lcd.clear();
+
+// 
+
+void initilizeLCD() { // this code is the first stage if lcd,  
+
+    if (doInitilizeLCD) { //if lcd is not on dont run program 
+
+
+
+        doInitilizeLCD = false;
+
+        lcd.clear();
+
+        String a = getStateString(armedState);
+
+
+
+        if (debug) { // lcd will ask user to arm using keypad 
+
+            Serial.println("armedState: " + a);
+
+        }
+
+
+
+        lcd.setCursor(0, 0);
+
+        lcd.print(a);
+
+        lcd.setCursor(0, 1);
+
+        lcd.print("PRESS * to ARM.");
+
+    }
+
+}
+
+
+
+void handleLCD(bool shouldClearLCD) { //this code will delete any text on the lcd once shouldclear is activated aka alarm is armed 
+
+    if (shouldClearLCD) {
+
+        lcd.clear();
+
+    }
+
+
+
     String a = getStateString(armedState);
 
-    if (debug) {
-      Serial.println("armedState: " + a);
+
+
+    if (debug) { // ask user to disarm using keypad 
+
+        Serial.println("armedState: " + a);
+
     }
+
+
 
     lcd.setCursor(0, 0);
+
     lcd.print(a);
+
     lcd.setCursor(0, 1);
-    lcd.print("PRESS * to ARM.");
-  }
-}
-
-void handleLCD(bool shouldClearLCD) {
-  if (shouldClearLCD) {
-    lcd.clear();
-  }
-
-  String a = getStateString(armedState);
-
-  if (debug) {
-    Serial.println("armedState: " + a);
-  }
-
-  lcd.setCursor(0, 0);
-  lcd.print(a);
-  lcd.setCursor(0, 1);
 
 
-  lcd.print("DISARM KEY:");
-  uint8_t cursorStart = 11;
-  lcd.setCursor(cursorStart, 1);
-  lcd.cursor();
 
-  // overwrites the LCD screen positions with blank space or keypad input
-  for (int i = 0; i < 4; i++) {
-    if (keyPadInput[i] == 'z') {
-      lcd.setCursor(cursorStart + i, 1);
-      lcd.print(" ");
-    } else {
-      lcd.setCursor(cursorStart + i, 1);
-      lcd.print(keyPadInput[i]);
+
+    lcd.print("DISARM KEY:");
+
+    uint8_t cursorStart = 11;
+
+    lcd.setCursor(cursorStart, 1);
+
+    lcd.cursor();
+
+
+
+    // overwrites the LCD screen positions with blank space or keypad input 
+
+    for (int i = 0; i < 4; i++) {
+
+        if (keyPadInput[i] == 'a') {
+
+            lcd.setCursor(cursorStart + i, 1);
+
+            lcd.print(" ");
+
+        } else {
+
+            lcd.setCursor(cursorStart + i, 1);
+
+            lcd.print(keyPadInput[i]);
+
+        }
+
     }
-  }
+
 }
+
+
 
 void handleKeyPadInput() {
-  customKey = customKeypad.getKey();
-  if (customKey) {
 
-    Serial.print("customKey: ");
-    Serial.println(customKey);
+    customKey = customKeypad.getKey();
 
-    if (armedState == DISARMED ) {
-      if (customKey == '*') {
-        armedState = ARMED;
-        handleLCD(true);
-      }
-    } else {
-      if (customKey == '*') {
-        resetCodeInput();
-      } else if (customKey == '#') {
-        if (strcmp(keyPadInput, accessCode) == 0 ) {
-          Serial.println("Keypad input matches access code");
-          // Disarm the system
-          resetCodeInput();
-          armedState = DISARMED;
-          doInitilizeLCD = true;
-          initilizeLCD();
+    if (customKey) {
+
+
+
+        Serial.print("customKey: ");
+
+        Serial.println(customKey);
+
+
+
+        if (armedState == DISARMED) { // when system is disarmed if you press * the system will arm 
+
+            if (customKey == '*') {
+
+                armedState = ARMED;
+
+                handleLCD(true);
+
+            }
+
         } else {
-          resetCodeInput();
+
+            if (customKey == '*') { //if you dont press the right keys the lcd will reset the text 
+
+                resetCodeInput();
+
+            } else if (customKey == '#') { // if # is pressed the system will disarm 
+
+                if (strcmp(keyPadInput, accessCode) == 0) {
+
+                    Serial.println("Keypad input matches access code");
+
+                    // Disarm the system 
+
+                    resetCodeInput();
+
+                    armedState = DISARMED;
+
+                    doInitilizeLCD = true;
+
+                    initilizeLCD();
+
+                } else {
+
+                    resetCodeInput(); //reset if wrong input is pressed 
+
+                }
+
+            } else {
+
+                if (inputCounter <= 3) { // wont reset if you leave the password at three charachters 
+
+                    keyPadInput[inputCounter] = customKey;
+
+                    inputCounter++;
+
+                    handleLCD(true);
+
+                } else {
+
+                    // do nothing 
+
+                }
+
+            }
+
         }
-      } else {
-        if (inputCounter <= 3) {
-          keyPadInput[inputCounter] = customKey;
-          inputCounter++;
-          handleLCD(true);
-        } else {
-          // do nothing
-        }
-      }
+
     }
-  }
+
 }
 
 
-void resetCodeInput() {
-  Serial.println("reseting keyPadInput");
-  for (int i = 0; i < 4; i++) {
-    keyPadInput[i] = 'z';
-  }
-  inputCounter = 0;
-  handleLCD(true);
+
+
+void resetCodeInput() { //code to reset keypad input 
+
+    Serial.println("reseting keyPadInput");
+
+    for (int i = 0; i < 4; i++) {
+
+        keyPadInput[i] = 'a';
+
+    }
+
+    inputCounter = 0;
+
+    handleLCD(true);
+
 }
 
-void handlePIR() {
-  pirValue = digitalRead(pirPin);
+
+
+void handlePIR() { //read status of PIR 
+
+    pirValue = digitalRead(pirPin);
+
 }
+
+
 
 void alert() {
-  if (pirValue > 0 && armedState == ARMED ) {
-    shouldBeAlerting = true;
-  } else {
-    shouldBeAlerting = false;
-  }
 
-  if (shouldBeAlerting) {
-    Serial.println("shouldBeAlerting");
-  }
+    if (pirValue > 0 && armedState == ARMED) { // when pir detects movement the alarm will trigger if the system is armed 
 
-  handleLed();
+        shouldBeAlerting = true;
 
-  handleBuzz();
+    } else {
+
+        shouldBeAlerting = false;
+
+    }
+
+
+
+    if (shouldBeAlerting) {
+
+        Serial.println("shouldBeAlerting");
+
+    }
+
+
+
+    handleLed(); //activate led 
+
+
+
+    handleBuzz(); //activate buzzer when alarm is alerting 
+
+
 
 }
 
-void handleLed () {
-  // handle the alarm LED
-  if (shouldBeAlerting) {
-    Serial.println("setting LED HIGH");
-    digitalWrite(ledPin, HIGH);
-  } else {
-    // Serial.println("setting LED LOW");
-    digitalWrite(ledPin, LOW);
-  }
+
+
+void handleLed() {
+
+    // handle the alarm LED 
+
+    if (shouldBeAlerting) {
+
+        Serial.println("setting LED HIGH"); //turn power on  
+
+        digitalWrite(ledPin, HIGH);
+
+    } else {
+
+        // Serial.println("setting LED LOW"); // else power off 
+
+        digitalWrite(ledPin, LOW);
+
+    }
+
 }
+
+
 
 void handleBuzz() {
-  if (shouldBeAlerting) {
-    unsigned char i;
-    for (i = 0; i < 10; i++)
-    {
-      digitalWrite(buzzer, HIGH);
-      delay(1);//wait for 1ms
-      digitalWrite(buzzer, LOW);
-      delay(1);//wait for 1ms
+
+    if (shouldBeAlerting) {
+
+        unsigned char i;
+
+        for (i = 0; i < 10; i++)
+
+        {
+
+            digitalWrite(buzzer, HIGH); //buzz on for 1 second than silent for a second 
+
+            delay(1); //wait for 1ms 
+
+            digitalWrite(buzzer, LOW);
+
+            delay(1); //wait for 1ms 
+
+        }
+
+        //output another frequency 
+
+        for (i = 0; i < 20; i++)
+
+        {
+
+            digitalWrite(buzzer, HIGH); //outputs a seperate frequency 
+
+            delay(2); //wait for 2ms 
+
+            digitalWrite(buzzer, LOW);
+
+            delay(2); //wait for 2ms 
+
+        }
+
     }
-    //output another frequency
-    for (i = 0; i < 20; i++)
-    {
-      digitalWrite(buzzer, HIGH);
-      delay(2);//wait for 2ms
-      digitalWrite(buzzer, LOW);
-      delay(2);//wait for 2ms
-    }
-  }
+
 }
